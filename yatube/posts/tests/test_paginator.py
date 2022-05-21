@@ -6,7 +6,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.conf import settings
 
-from ..models import Post, Group
+from ..models import Follow, Post, Group
 
 User = get_user_model()
 COUNT_POST_WITH_GROUP = 13
@@ -49,23 +49,28 @@ class PostPagesTests(TestCase):
                     text=f'Тестовый пост №{count_post}, с другими',
                     author=cls.user_second,
                     group=cls.group_second))
+        Follow.objects.create(
+            user=cls.user,
+            author=cls.user_second)
 
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
     def test_index_profile_group_first_page_count_paginator(self):
-        """Проверка количества постов на первой странице index, group, profile
-        при превышении максимального количества постов на страницу"""
+        """Проверка количества постов на первой странице
+        index, group, profile, index_follow при превышении
+        максимального количества постов на страницу"""
         test_page = (
             reverse('posts:index'),
             reverse('posts:profile',
                     kwargs={'username': self.user_second.username}),
             reverse('posts:group_list',
-                    kwargs={'slug': self.group.slug}))
+                    kwargs={'slug': self.group.slug}),
+            reverse('posts:follow_index'))
         for page in test_page:
             with self.subTest(page=page):
-                response = self.client.get(page)
+                response = self.authorized_client.get(page)
                 self.assertEqual(
                     len(response.context['page_obj']),
                     settings.MAX_PAGE_AMOUNT)
@@ -80,6 +85,9 @@ class PostPagesTests(TestCase):
             / settings.MAX_PAGE_AMOUNT)
         count_group_page = ceil(
             COUNT_POST_WITH_GROUP / settings.MAX_PAGE_AMOUNT)
+        count_follow_page = ceil(
+            COUNT_POST_WITH_SECOND_GROUP_AND_SECOND_USER
+            / settings.MAX_PAGE_AMOUNT)
         count_post_last_index_page = (
             len(self.post) - (count_index_page - 1)
             * settings.MAX_PAGE_AMOUNT)
@@ -89,6 +97,9 @@ class PostPagesTests(TestCase):
         count_post_last_group_page = (
             COUNT_POST_WITH_GROUP - (count_group_page - 1)
             * settings.MAX_PAGE_AMOUNT)
+        count_post_last_follow_page = (
+            COUNT_POST_WITH_SECOND_GROUP_AND_SECOND_USER
+            - (count_follow_page - 1) * settings.MAX_PAGE_AMOUNT)
         test_last_page = (
             (reverse('posts:index')
              + f'?page={count_index_page}', count_post_last_index_page),
@@ -99,9 +110,12 @@ class PostPagesTests(TestCase):
             (reverse('posts:group_list',
                      kwargs={'slug': self.group.slug})
              + f'?page={count_group_page}',
-             count_post_last_group_page))
+             count_post_last_group_page),
+            (reverse('posts:follow_index')
+             + f'?page={count_follow_page}',
+             count_post_last_follow_page))
         for page, count in test_last_page:
             with self.subTest(page=page):
-                response = self.client.get(page)
+                response = self.authorized_client.get(page)
                 self.assertEqual(
                     len(response.context['page_obj'].object_list), count)

@@ -150,10 +150,29 @@ class PostFormTests(TestCase):
             'text': 'Тестовый заголовок',
         }
         self.guest_client.post(
-            reverse('posts:post_detail', kwargs={'post_id': self.post.id}),
+            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
             data=form_data)
         self.assertEqual(Comment.objects.count(), comments_count)
         self.assertFalse(
+            Comment.objects.filter(
+                text=form_data['text'],
+                post=self.post,
+                author=self.user
+            ).exists())
+
+    def test_user_comment_post(self):
+        """Авторизованный пользователь, отправляя валидную форму,
+        c /comment/ создает новый комментарий."""
+        comments_count = Comment.objects.count()
+        form_data = {
+            'text': 'Тестовый заголовок',
+        }
+        self.authorized_client.post(
+            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
+            data=form_data,
+            follow=True)
+        self.assertEqual(Comment.objects.count(), comments_count + 1)
+        self.assertTrue(
             Comment.objects.filter(
                 text=form_data['text'],
                 post=self.post,

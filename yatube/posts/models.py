@@ -79,6 +79,10 @@ class Comment(models.Model):
 
     def __str__(self) -> str:
         return self.text
+    
+    class Meta:
+        verbose_name = 'Коментарий'
+        verbose_name_plural = 'Коментарии'
 
 
 class Follow(models.Model):
@@ -91,4 +95,16 @@ class Follow(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='following',
-        verbose_name='Пользователь который подписывается')
+        verbose_name='Пользователь на которого подписываются')
+
+    def __str__(self) -> str:
+        return f'Подписка {self.user.username} на {self.author.username}'
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'author'],
+                                    name='unique_follow'),
+            models.CheckConstraint(check=~models.Q(user=models.F('author')),
+                                   name='dont_follow_self')]

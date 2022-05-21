@@ -44,8 +44,8 @@ class PostURLTests(TestCase):
             (reverse('posts:post_edit',
                      kwargs={'post_id': self.post.id}),
              f'/posts/{self.post.id}/edit/'),
-            (reverse('posts:post_create'), '/create/')
-        )
+            (reverse('posts:post_create'), '/create/'),
+            (reverse('posts:follow_index'), '/follow/'))
         for reverse_name, url in templates_pages_names:
             with self.subTest(reverse_name=reverse_name):
                 self.assertEqual(reverse_name, url)
@@ -63,7 +63,8 @@ class PostURLTests(TestCase):
              'posts/post_detail.html'),
             (reverse('posts:post_edit', kwargs={'post_id': self.post.id}),
              'posts/form_post.html'),
-            (reverse('posts:post_create'), 'posts/form_post.html'))
+            (reverse('posts:post_create'), 'posts/form_post.html'),
+            (reverse('posts:follow_index'), 'posts/follow.html'))
         for address, template in templates_url_names:
             with self.subTest(address=address):
                 response = self.authorized_client.get(address)
@@ -109,7 +110,13 @@ class PostURLTests(TestCase):
             (reverse('posts:post_edit',
                      kwargs={'post_id': self.post.id}),
              HTTPStatus.OK, True),
+            (reverse('posts:post_edit',
+                     kwargs={'post_id': self.post.id}),
+             HTTPStatus.FOUND, False),
+            (reverse('posts:post_create'), HTTPStatus.FOUND, False),
             (reverse('posts:post_create'), HTTPStatus.OK, True),
+            (reverse('posts:follow_index'), HTTPStatus.FOUND, False),
+            (reverse('posts:follow_index'), HTTPStatus.OK, True),
             ('/not_page/', HTTPStatus.NOT_FOUND, True))
         for test_url, status, auth in test_urls:
             with self.subTest(test_urls=test_urls):

@@ -41,13 +41,16 @@ class PostPagesTests(TestCase):
             description='Тестовое описание для второй группы')
         cls.post = Post.objects.create(
             text='Тестовый пост',
-            author=cls.user,
+            author=cls.user_second,
             image=uploaded,
             group=cls.group)
         cls.comment = Comment.objects.create(
             post=cls.post,
             author=cls.user,
             text='Тестовый комментарий')
+        Follow.objects.create(
+            user=cls.user,
+            author=cls.user_second)
 
     def setUp(self):
         self.authorized_client = Client()
@@ -59,19 +62,38 @@ class PostPagesTests(TestCase):
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def test_index_group_profile_show_correct_context(self):
-        """Шаблон index, group_list, profile сформирован
+        """Шаблон index, group_list, profile, follow сформирован
         с правильным контекстом."""
         test_page = (
             (reverse('posts:index'), 'page_obj'),
             (reverse('posts:group_list',
                      kwargs={'slug': self.group.slug}), 'page_obj'),
             (reverse('posts:profile',
-                     kwargs={'username': self.user.username}), 'page_obj'))
+                     kwargs={'username': self.user_second.username}),
+             'page_obj'),
+            (reverse('posts:follow_index'), 'page_obj'))
         for (page, context) in test_page:
             with self.subTest(page=page):
                 response = self.authorized_client.get(page)
                 object_context = response.context[context]
                 self.assertIn(self.post, object_context.object_list)
+
+    def test_index_group_profile_show_correct_context(self):
+        """При создании поста с картинкой картинка есть на
+        index, group_list, profile, follow"""
+        test_page = (
+            (reverse('posts:index'), 'page_obj'),
+            (reverse('posts:group_list',
+                     kwargs={'slug': self.group.slug}), 'page_obj'),
+            (reverse('posts:profile',
+                     kwargs={'username': self.user_second.username}),
+             'page_obj'))
+        self.authorized_client.force_login(self.user_second)
+        for page, context in test_page:
+            with self.subTest(page=page):
+                response = self.authorized_client.get(page)
+                img_object = response.context[context].object_list[0].image
+                self.assertEqual(img_object, self.post.image)
 
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -92,6 +114,7 @@ class PostPagesTests(TestCase):
 
     def test_edit_post_page_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
+        self.authorized_client.force_login(self.user_second)
         response = self.authorized_client.get(reverse(
             'posts:post_edit', kwargs={'post_id': self.post.id}))
         form_field = response.context.get('form')
@@ -104,42 +127,36 @@ class PostPagesTests(TestCase):
             'posts:group_list', kwargs={'slug': self.group_second.slug}))
         self.assertNotIn(self.post, response_test.context['page_obj'])
 
-    def test_following(self):
-        """Авторизованный пользователь может подписываться на других пользователей
-        и удалять их из подписок"""
+    def test_follow(self):
+        """Авторизованный пользователь может подписываться"""
+        self.authorized_client.force_login(self.user_second)
         self.authorized_client.get(
             reverse('posts:profile_follow',
-                    kwargs={'username': self.user_second.username}))
+                    kwargs={'username': self.user.username}))
         self.assertTrue(
             Follow.objects.filter(
-                user=self.user,
-                author=self.user_second
+                user=self.user_second,
+                author=self.user
             ).exists())
+
+    def test_unfollow(self):
+        """Авторизованный пользователь может отписываться"""
+        self.authorized_client.force_login(self.user_second)
         self.authorized_client.get(
             reverse('posts:profile_unfollow',
-                    kwargs={'username': self.user_second.username}))
+                    kwargs={'username': self.user.username}))
         self.assertFalse(
             Follow.objects.filter(
-                user=self.user,
-                author=self.user_second
+                user=self.user_second,
+                author=self.user
             ).exists())
 
     def test_follow_index(self):
-        """Новая запись появляется в ленте тех, кто на него подписан
-        и не появляется в тенте тех кто не подписан"""
+        """Новая запись не появляется в ленте тех кто не подписан"""
         new_post = Post.objects.create(
             text='Тестовый пост2',
-            author=self.user_second,
+            author=self.user,
             group=self.group)
-        user_test = User.objects.create_user(username='testUser')
-        self.authorized_client.get(
-            reverse('posts:profile_follow',
-                    kwargs={'username': self.user_second.username}))
         response = self.authorized_client.get(reverse('posts:follow_index'))
         context = response.context['page_obj']
-        self.assertIn(new_post, context.object_list)
-        self.authorized_client.force_login(user_test)
-        response_second = self.authorized_client.get(
-            reverse('posts:follow_index'))
-        context_second = response_second.context['page_obj']
-        self.assertNotIn(new_post, context_second.object_list)
+        self.assertNotIn(new_post, context.object_list)
