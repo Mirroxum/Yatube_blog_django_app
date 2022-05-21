@@ -6,7 +6,7 @@
   <h1>Последние обновления на сайте</h1>
   {% include 'includes/switcher.html' %}
   {% load cache %}
-  {% cache 20 index_page with page_obj %}
+  {% cache 20 index_page page_obj.num_pages %}
   {% for post in page_obj %}
     {% include 'includes/article.html' %}
     {% if not forloop.last %}

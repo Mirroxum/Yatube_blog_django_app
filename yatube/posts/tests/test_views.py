@@ -80,7 +80,7 @@ class PostPagesTests(TestCase):
 
     def test_index_group_profile_show_correct_context(self):
         """При создании поста с картинкой картинка есть на
-        index, group_list, profile, follow"""
+        index, group_list, profile"""
         test_page = (
             (reverse('posts:index'), 'page_obj'),
             (reverse('posts:group_list',
@@ -101,10 +101,8 @@ class PostPagesTests(TestCase):
             'posts:post_detail', kwargs={'post_id': self.post.id}))
         context_object = response.context['post']
         form_comment_object = response.context['form']
-        comment_object = response.context['comments']
         self.assertEqual(self.post, context_object)
         self.assertIsInstance(form_comment_object, CommentForm)
-        self.assertIn(self.comment, comment_object)
 
     def test_create_post_page_show_correct_context(self):
         """Шаблон create сформирован с правильным контекстом."""
