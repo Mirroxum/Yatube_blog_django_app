@@ -92,7 +92,8 @@ class PostPagesTests(TestCase):
         for page, context in test_page:
             with self.subTest(page=page):
                 response = self.authorized_client.get(page)
-                img_object = response.context[context].object_list[0].image
+                img_object = (
+                    list(response.context[context].object_list).pop().image)
                 self.assertEqual(img_object, self.post.image)
 
     def test_post_detail_page_show_correct_context(self):

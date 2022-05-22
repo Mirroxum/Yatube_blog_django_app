@@ -1,7 +1,7 @@
 from django.core.paginator import Paginator
+from django.conf import settings
 
 
-def paginator(request, list, settings):
-    paginator = Paginator(list, settings)
-    page_number = request.GET.get('page')
+def paginator(page_number, list):
+    paginator = Paginator(list, settings.MAX_PAGE_AMOUNT)
     return paginator.get_page(page_number)
