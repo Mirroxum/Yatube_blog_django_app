@@ -42,8 +42,8 @@ def post_detail(request, post_id):
         'group', 'author').prefetch_related(
             Prefetch(
                 'comments',
-                queryset=Comment.objects.filter(
-                    post=post_id).select_related('author'))), id=post_id)
+                queryset=Comment.objects.select_related(
+                    'author'))), id=post_id)
     count = post.author.posts.count()
     context = {
         'post': post,

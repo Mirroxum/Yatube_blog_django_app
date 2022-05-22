@@ -78,7 +78,7 @@ class PostPagesTests(TestCase):
                 object_context = response.context[context]
                 self.assertIn(self.post, object_context.object_list)
 
-    def test_index_group_profile_show_correct_context(self):
+    def test_index_group_profile_show_correct_context_image(self):
         """При создании поста с картинкой картинка есть на
         index, group_list, profile"""
         test_page = (
@@ -92,8 +92,7 @@ class PostPagesTests(TestCase):
         for page, context in test_page:
             with self.subTest(page=page):
                 response = self.authorized_client.get(page)
-                img_object = (
-                    list(response.context[context].object_list).pop().image)
+                img_object = response.context[context].object_list.pop().image
                 self.assertEqual(img_object, self.post.image)
 
     def test_post_detail_page_show_correct_context(self):
